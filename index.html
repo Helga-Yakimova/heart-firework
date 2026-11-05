@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Heart Firework</title>
+  <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    html, body {
+        width: 100%;
+        height: 100%;
+        background-color: #111111; /* Тот самый темный фон */
+        overflow: hidden; 
+    }
+    canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+  </style>
+</head>
+<body>
+    <canvas id="myCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        document.addEventListener('click', (e) => {
+            createHeartFirework(e.clientX, e.clientY);
+        });
+
+        class Particle {
+            constructor(x, y, vx, vy, color, size) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.color = color;
+                this.size = size;
+
+                this.life = 1.0;
+                this.decay = Math.random() * 0.008 + 0.004; 
+                this.gravity = 0.04; 
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                this.vy += this.gravity;
+
+                this.vx *= 0.94;
+                this.vy *= 0.94;
+
+                this.life -= this.decay;
+            }
+
+            draw(ctx) {
+                ctx.globalAlpha = this.life > 0.2 ? 1 : this.life * 5;
+                ctx.fillStyle = this.color;
+                
+                const s = this.size / 5;
+                
+                ctx.beginPath();
+                const x = this.x;
+                const y = this.y;
+                ctx.moveTo(x, y + 3 * s);
+                ctx.bezierCurveTo(x, y, x - 5 * s, y, x - 5 * s, y - 3 * s);
+                ctx.bezierCurveTo(x - 5 * s, y - 6 * s, x - 2 * s, y - 6 * s, x, y - 3 * s);
+                ctx.bezierCurveTo(x + 2 * s, y - 6 * s, x + 5 * s, y - 6 * s, x + 5 * s, y - 3 * s);
+                ctx.bezierCurveTo(x + 5 * s, y, x, y, x, y + 3 * s);
+                ctx.fill();
+            }
+        }
+
+        let particles = [];
+        // Оставляем прозрачность для шлейфа
+        let trailOpacity = 0.12; 
+
+        function createHeartFirework(x, y) {
+            if (particles.length > 4000) return;
+
+            const scale = Math.random() * 14 + 8;
+            const size = Math.random() * 0.8 + 0.5; 
+
+            const baseHues = [
+                { h: 0,   s: 100 }, { h: 355, s: 90  }, { h: 350, s: 100 },
+                { h: 345, s: 100 }, { h: 340, s: 100 }, { h: 335, s: 95  },
+                { h: 330, s: 100 }, { h: 325, s: 90  }, { h: 320, s: 100 },
+                { h: 315, s: 85  }, { h: 310, s: 95  }, { h: 5,   s: 100 },
+                { h: 10,  s: 90  }, { h: 350, s: 80  }, { h: 335, s: 85  }
+            ];
+            const chosenHue = baseHues[Math.floor(Math.random() * baseHues.length)];
+
+            const particleCount = 600;
+
+            for (let i = 0; i < particleCount; i++) {
+                const t = ((i + Math.random() * 0.5) / particleCount) * Math.PI * 2;
+
+                const hx = 16 * Math.pow(Math.sin(t), 3);
+                const hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+
+                let vx = (hx / 35) * scale;
+                let vy = (hy / 35) * scale;
+
+                const fillSpread = Math.sqrt(Math.random()); 
+                vx *= fillSpread;
+                vy *= fillSpread;
+
+                vx += (Math.random() - 0.5) * 1.5;
+                vy += (Math.random() - 0.5) * 1.5;
+                
+                const lightness = Math.floor(Math.random() * 30 + 50); 
+                const saturation = Math.floor(Math.random() * 20) + 80;
+                const color = `hsl(${chosenHue.h}, ${saturation}%, ${lightness}%)`;
+
+                particles.push(new Particle(x, y, vx, vy, color, size));
+            }
+        }
+
+        function animate() {
+            // Используем цвет #111111 (в формате RGB это 17, 17, 17) с прозрачностью
+            ctx.fillStyle = `rgba(17, 17, 17, ${trailOpacity})`;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+
+                if (p.life < 0.1 || p.y > canvas.height + 50 || p.x < -50 || p.x > canvas.width + 50) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                p.draw(ctx);
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
